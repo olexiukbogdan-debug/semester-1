@@ -1,9 +1,7 @@
-"""Laboratory work: Hello, variables, data types, and operators."""
-
 print("Hello, world!")
 print()
 
-# Variables of the basic Python types.
+
 name = "Bogdan"
 numeric = 42
 integer_number = 7
