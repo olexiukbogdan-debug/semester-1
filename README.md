@@ -19,6 +19,18 @@ python main.py
 
 Запуск: `python lab3.py`. Адмін: `admin`, пароль: `1234`.
 
+## Лабораторна робота 4
+
+У папці `lab4` є точка входу та 15 окремих модулів: приклади роботи з 10 сторонніми бібліотеками і 5 вбудованими модулями Python.
+
+Встановлення сторонніх бібліотек:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Запуск: `python lab4/main.py`.
+
 ## GitHub
 
 [Репозиторій semester-1](https://github.com/olexiukbogdan-debug/semester-1)

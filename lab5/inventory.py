@@ -1,52 +1,96 @@
-"""Bounded potion and ingredient inventories."""
+from ingradiens import get_type  # беремо функцію, що визначає тип інгредієнта
 
-from collections import Counter
+# Інвентар - це список слотів, кожен слот - словник: {"name": назва, "count": кількість}
 
 
-class Inventory:
-    INGREDIENT_SLOT_LIMIT = 25
-    INGREDIENT_STACK_LIMIT = 25
-    POTION_SLOT_LIMIT = 10
-    POTION_STACK_LIMIT = 10
+def can_add(inv, name, max_slots, stack_size):  # перевіряє, чи можна додати хоча б 1 предмет
+    try:  # пробуємо виконати код
+        for slot in inv:  # перебираємо всі слоти інвентаря
+            if slot["name"] == name and slot["count"] < stack_size:  # якщо слот з таким предметом і в ньому ще є місце
+                return True  # то додати можна
+        return len(inv) < max_slots  # інакше можна лише якщо є ще вільний (порожній) слот
+    except Exception as e:  # якщо сталась помилка
+        print("Помилка can_add:", e)  # виводимо повідомлення про помилку
+        return False  # вважаємо, що додати не можна
 
-    def __init__(self):
-        self.ingredients = Counter()
-        self.potions = Counter()
 
-    def add_ingredient(self, name):
-        if name not in self.ingredients and len(self.ingredients) >= self.INGREDIENT_SLOT_LIMIT:
-            return False
-        if self.ingredients[name] >= self.INGREDIENT_STACK_LIMIT:
-            return False
-        self.ingredients[name] += 1
-        return True
+def add_item(inv, name, amount, max_slots, stack_size):  # додає предмети в інвентар, повертає скільки НЕ влізло
+    try:  # пробуємо виконати код
+        for slot in inv:  # спочатку перебираємо вже існуючі слоти
+            if amount == 0:  # якщо вже все додали
+                break  # виходимо з циклу
+            if slot["name"] == name and slot["count"] < stack_size:  # якщо слот з таким же предметом і він не повний
+                put = min(stack_size - slot["count"], amount)  # скільки можемо покласти: менше з "вільного місця" і "скільки треба додати"
+                slot["count"] += put  # збільшуємо кількість у слоті
+                amount -= put  # зменшуємо те, що ще залишилось додати
+        while amount > 0 and len(inv) < max_slots:  # поки є що додавати і є вільні слоти
+            put = min(stack_size, amount)  # кладемо або повний стак, або те, що залишилось
+            inv.append({"name": name, "count": put})  # створюємо новий слот з предметом
+            amount -= put  # зменшуємо те, що ще залишилось додати
+    except Exception as e:  # якщо сталась помилка
+        print("Помилка додавання предмета:", e)  # виводимо повідомлення про помилку
+    return amount  # повертаємо кількість, що не влізла (0 якщо все додалось)
 
-    def add_potion(self, name, amount=1):
-        if amount <= 0:
-            return 0
-        if name not in self.potions and len(self.potions) >= self.POTION_SLOT_LIMIT:
-            return 0
-        accepted = min(amount, self.POTION_STACK_LIMIT - self.potions[name])
-        if accepted:
-            self.potions[name] += accepted
-        return accepted
 
-    def available_ingredients(self, names):
-        return [name for name in names if self.ingredients[name] > 0]
+def count_item(inv, name):  # рахує скільки всього є предметів з такою назвою
+    total = 0  # лічильник, починаємо з нуля
+    try:  # пробуємо виконати код
+        for slot in inv:  # перебираємо всі слоти
+            if slot["name"] == name:  # якщо назва збігається
+                total += slot["count"]  # додаємо кількість з цього слоту до лічильника
+    except Exception as e:  # якщо сталась помилка
+        print("Помилка підрахунку:", e)  # виводимо повідомлення про помилку
+    return total  # повертаємо загальну кількість
 
-    def consume_ingredients(self, names):
-        for name in names:
-            if self.ingredients[name] <= 0:
-                raise ValueError(f"Недостатньо інгредієнта: {name}")
-        for name in names:
-            self.ingredients[name] -= 1
-            if self.ingredients[name] == 0:
-                del self.ingredients[name]
 
-    def remove_potions(self, name, amount):
-        if amount <= 0 or self.potions[name] < amount:
-            return False
-        self.potions[name] -= amount
-        if self.potions[name] == 0:
-            del self.potions[name]
-        return True
+def remove_item(inv, name, amount):  # забирає предмети з інвентаря, повертає True/False
+    try:  # пробуємо виконати код
+        if count_item(inv, name) < amount:  # якщо предметів менше, ніж треба забрати
+            return False  # забрати не можемо
+        i = 0  # номер слоту, з якого починаємо перевірку
+        while i < len(inv) and amount > 0:  # поки не дійшли до кінця і ще є що забирати
+            if inv[i]["name"] == name:  # якщо в цьому слоті потрібний предмет
+                take = min(inv[i]["count"], amount)  # скільки забираємо: менше з "є в слоті" і "треба забрати"
+                inv[i]["count"] -= take  # зменшуємо кількість у слоті
+                amount -= take  # зменшуємо те, що ще треба забрати
+                if inv[i]["count"] == 0:  # якщо слот став порожнім
+                    inv.pop(i)  # видаляємо порожній слот зі списку через pop
+                    continue  # переходимо на початок циклу без збільшення i (бо список зсунувся)
+            i += 1  # переходимо до наступного слоту
+        return True  # все забрали успішно
+    except Exception as e:  # якщо сталась помилка
+        print("Помилка видалення предмета:", e)  # виводимо повідомлення про помилку
+        return False  # забрати не вдалось
+
+
+def count_type(inv, item_type):  # рахує скільки всього інгредієнтів певного типу (наприклад усіх "Корінь ...")
+    total = 0  # лічильник, починаємо з нуля
+    try:  # пробуємо виконати код
+        for slot in inv:  # перебираємо всі слоти
+            if get_type(slot["name"]) == item_type:  # якщо тип предмета в слоті збігається з потрібним
+                total += slot["count"]  # додаємо кількість з цього слоту
+    except Exception as e:  # якщо сталась помилка
+        print("Помилка підрахунку типу:", e)  # виводимо повідомлення про помилку
+    return total  # повертаємо загальну кількість
+
+
+def remove_by_type(inv, item_type):  # забирає 1 будь-який інгредієнт потрібного типу
+    try:  # пробуємо виконати код
+        for slot in inv:  # перебираємо всі слоти
+            if get_type(slot["name"]) == item_type:  # якщо знайшли слот з потрібним типом
+                return remove_item(inv, slot["name"], 1)  # забираємо з нього 1 штуку і повертаємо результат
+        return False  # якщо такого типу не знайшли - не вдалось
+    except Exception as e:  # якщо сталась помилка
+        print("Помилка remove_by_type:", e)  # виводимо повідомлення про помилку
+        return False  # забрати не вдалось
+
+
+def print_inventory(inv, title, max_slots):  # красиво виводить інвентар на екран
+    try:  # пробуємо виконати код
+        print("--- " + title + " (" + str(len(inv)) + "/" + str(max_slots) + " слотів) ---")  # заголовок: назва і скільки слотів зайнято
+        if len(inv) == 0:  # якщо інвентар порожній
+            print("  порожньо")  # так і пишемо
+        for i in range(len(inv)):  # перебираємо слоти за номерами
+            print("  " + str(i + 1) + ". " + inv[i]["name"] + " x" + str(inv[i]["count"]))  # виводимо: номер, назва, кількість
+    except Exception as e:  # якщо сталась помилка
+        print("Помилка виводу інвентаря:", e)  # виводимо повідомлення про помилку

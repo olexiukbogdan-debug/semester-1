@@ -1,45 +1,29 @@
-"""Potion catalog and their ingredient requirements."""
+from ingradiens import TYPES  # беремо список типів інгредієнтів з файлу ingradiens.py
 
-from dataclasses import dataclass
+# 10 ефектів x 5 розмірів = 50 різних зілль
+EFFECTS = ["здоров'я", "сили", "швидкості", "невидимості", "мудрості",  # перша частина списку ефектів
+           "удачі", "вогнестійкості", "нічного бачення", "підводного дихання",
+           "регенерації"]  # друга частина списку ефектів
 
-from ingredients import INGREDIENTS
-
-
-@dataclass(frozen=True)
-class Potion:
-    number: int
-    name: str
-    ingredients: tuple[str, ...]
-    price: int
+SIZES = ["Мале зілля", "Зілля", "Велике зілля", "Еліксир",
+         "Великий еліксир"]  # 5 розмірів зілля від меншого до більшого
 
 
-_EFFECTS = (
-    "зцілення",
-    "сили",
-    "спритності",
-    "мудрості",
-    "захисту",
-    "нічного зору",
-    "вогню",
-    "крижаного подиху",
-    "удачі",
-    "невидимості",
-)
-
-_RARITIES = ("Мале", "Звичайне", "Міцне", "Рідкісне", "Королівське")
-
-POTIONS = tuple(
-    Potion(
-        number=index + 1,
-        name=f"{rarity} зілля {effect}",
-        ingredients=INGREDIENTS[index * 4:index * 4 + 4],
-        price=20 + (index % 5) * 5,
-    )
-    for index, (rarity, effect) in enumerate(
-        (rarity, effect)
-        for rarity in _RARITIES
-        for effect in _EFFECTS
-    )
-)
-
-POTIONS_BY_NUMBER = {potion.number: potion for potion in POTIONS}
+def create_potion_pool():  # функція, що створює список усіх 50 зілль
+    # кожне зілля: назва, рецепт (2 типи інгредієнтів), ціна
+    pool = []  # порожній список, у який складемо всі зілля
+    try:  # блок try: пробуємо виконати код
+        for size_index in range(len(SIZES)):  # перебираємо номери розмірів: 0, 1, 2, 3, 4
+            for effect_index in range(len(EFFECTS)):  # для кожного розміру перебираємо номери ефектів: 0...9
+                potion = {  # створюємо словник - одне зілля
+                    "name": SIZES[size_index] + " " + EFFECTS[effect_index],  # назва = розмір + ефект
+                    "recipe": [TYPES[effect_index], TYPES[(effect_index + size_index) % len(TYPES)]],
+                    # рецепт: перший тип за номером ефекту, другий зсунутий на розмір (% щоб не вийти за межі списку)
+                    "price": 20 + size_index * 20 + effect_index * 2,  # ціна росте разом з розміром і трохи з ефектом
+                }  # кінець словника зілля
+                pool.append(potion)  # додаємо зілля в загальний список
+    except Exception as e:  # якщо сталась помилка
+        raise RuntimeError("Не вдалося створити пул зіль.") from e
+    if len(pool) < 50 or len({potion["name"] for potion in pool}) != len(pool):
+        raise ValueError("Пул має містити щонайменше 50 зіль з унікальними назвами.")
+    return pool  # повертаємо готовий список зілль
